@@ -1,3 +1,6 @@
+// Transactional email sender for CATALOG. Wraps the Resend SDK and renders
+// outgoing messages with the dark, on-brand HTML template used across admin
+// and system emails. Requires RESEND_API_KEY and EMAIL_FROM in the env.
 import { Resend } from 'resend';
 import logger from './logger';
 
