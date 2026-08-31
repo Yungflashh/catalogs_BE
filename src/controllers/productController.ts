@@ -82,10 +82,22 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
   res.json(product);
 });
 
+const clampRating = (v: unknown): number => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(5, Math.max(0, n));
+};
+
+const clampReviews = (v: unknown): number => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
+};
+
 // @desc  Create product (admin)
 // @route POST /api/products
 export const createProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, description, price, category, brand, images, stock, featured } = req.body;
+  const { name, description, price, category, brand, images, stock, featured, rating, numReviews } = req.body;
   const product = await Product.create({
     name,
     description,
@@ -95,6 +107,8 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
     images: images || [],
     stock,
     featured: !!featured,
+    rating: rating !== undefined ? clampRating(rating) : 0,
+    numReviews: numReviews !== undefined ? clampReviews(numReviews) : 0,
   });
   res.status(201).json(product);
 });
@@ -111,6 +125,8 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
   fields.forEach((f) => {
     if (req.body[f] !== undefined) (product as any)[f] = req.body[f];
   });
+  if (req.body.rating !== undefined) product.rating = clampRating(req.body.rating);
+  if (req.body.numReviews !== undefined) product.numReviews = clampReviews(req.body.numReviews);
   const updated = await product.save();
   res.json(updated);
 });

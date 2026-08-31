@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { Product } from '../models/Product';
 import { Order } from '../models/Order';
 import { AuthRequest } from '../middleware/auth';
+import { sendEmail } from '../utils/mailer';
 
 // @desc  Dashboard stats (admin)
 // @route GET /api/admin/stats
@@ -65,4 +66,35 @@ export const updateUserRole = asyncHandler(async (req: AuthRequest, res: Respons
   user.role = req.body.role === 'admin' ? 'admin' : 'user';
   await user.save();
   res.json({ _id: user._id, name: user.name, email: user.email, role: user.role });
+});
+
+// @desc  Send an email to a user (admin)
+// @route POST /api/admin/users/:id/email
+export const emailUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { subject, message } = req.body as { subject?: string; message?: string };
+  const trimmedSubject = (subject || '').trim();
+  const trimmedMessage = (message || '').trim();
+
+  if (!trimmedSubject || !trimmedMessage) {
+    res.status(400);
+    throw new Error('Subject and message are required');
+  }
+  if (trimmedSubject.length > 200) {
+    res.status(400);
+    throw new Error('Subject is too long (max 200 characters)');
+  }
+  if (trimmedMessage.length > 10000) {
+    res.status(400);
+    throw new Error('Message is too long (max 10,000 characters)');
+  }
+
+  const user = await User.findById(req.params.id).select('name email');
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  await sendEmail({ to: user.email, subject: trimmedSubject, text: trimmedMessage });
+
+  res.json({ message: `Email sent to ${user.email}` });
 });

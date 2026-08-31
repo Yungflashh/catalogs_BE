@@ -18,6 +18,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     throw new Error('Cart is empty');
   }
 
+  // Drop items whose product was deleted (populate returns null). Persist the
+  // cleanup so stale refs don't keep breaking future checkouts.
+  const originalCount = cart.items.length;
+  cart.items = cart.items.filter((i) => i.product);
+  if (cart.items.length !== originalCount) {
+    await cart.save();
+  }
+  if (cart.items.length === 0) {
+    res.status(400);
+    throw new Error('Cart items are no longer available. Please add products again.');
+  }
+
   const items = cart.items.map((i) => {
     const p = i.product as any;
     return {
