@@ -6,6 +6,7 @@ import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import logger from '../utils/logger';
+import { notify, formatEvent, nowUtc, clientIp } from '../utils/telegram';
 
 // @desc  Create order (checkout) from cart — digital products, no shipping
 // @route POST /api/orders
@@ -74,6 +75,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     total: totalPrice,
     items: items.length,
   });
+
+  notify(
+    formatEvent('✅', 'Order placed', {
+      Buyer: `${buyer.name} <${buyer.email}>`,
+      Total: `$${totalPrice.toFixed(2)}`,
+      Items: items.length,
+      Payment: order.paymentMethod,
+      OrderId: String(order._id),
+      IP: clientIp(req),
+      Time: nowUtc(),
+    })
+  );
 
   res.status(201).json(order);
 });

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { Cart } from '../models/Cart';
 import { AuthRequest } from '../middleware/auth';
+import { notify, formatEvent, nowUtc } from '../utils/telegram';
 
 const getPopulatedCart = async (userId: string) => {
   let cart = await Cart.findOne({ user: userId }).populate('items.product');
@@ -36,6 +37,19 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
   }
   await cart.save();
   const populated = await getPopulatedCart(req.user!._id.toString());
+
+  const added = populated.items.find((i) => (i.product as any)?._id?.toString() === productId);
+  const product = added?.product as any;
+  notify(
+    formatEvent('🛒', 'Add to cart', {
+      User: `${req.user!.name} <${req.user!.email}>`,
+      Product: product?.name || productId,
+      Qty: qty,
+      Price: product?.price !== undefined ? `$${product.price}` : undefined,
+      Time: nowUtc(),
+    })
+  );
+
   res.status(201).json(populated);
 });
 

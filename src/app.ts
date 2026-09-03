@@ -15,6 +15,8 @@ import adminRoutes from './routes/adminRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import cryptoWalletRoutes from './routes/cryptoWalletRoutes';
 import walletFundingRoutes from './routes/walletFundingRoutes';
+import trackRoutes from './routes/trackRoutes';
+import chatRoutes from './routes/chatRoutes';
 
 export const createApp = () => {
   const app = express();
@@ -51,6 +53,8 @@ export const createApp = () => {
   app.use('/api/upload', uploadRoutes);
   app.use('/api/crypto-wallets', cryptoWalletRoutes);
   app.use('/api/wallet-funding', walletFundingRoutes);
+  app.use('/api/track', trackRoutes);
+  app.use('/api/chat', chatRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

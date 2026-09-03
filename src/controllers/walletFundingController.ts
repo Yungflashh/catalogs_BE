@@ -4,6 +4,7 @@ import { WalletFunding } from '../models/WalletFunding';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import logger from '../utils/logger';
+import { notify, formatEvent, nowUtc, clientIp } from '../utils/telegram';
 
 // @route POST /api/wallet-funding — user creates a funding request
 export const createFundingRequest = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -33,6 +34,18 @@ export const createFundingRequest = asyncHandler(async (req: AuthRequest, res: R
     amount,
     expiresAt,
   });
+
+  notify(
+    formatEvent('💸', 'Wallet funding requested', {
+      User: `${req.user!.name} <${req.user!.email}>`,
+      Amount: `$${Number(amount).toFixed(2)}`,
+      Wallet: (populated.cryptoWallet as any)?.currency || cryptoWalletId,
+      ExpiresAt: expiresAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+      IP: clientIp(req),
+      Time: nowUtc(),
+    })
+  );
+
   res.status(201).json(populated);
 });
 
@@ -106,6 +119,20 @@ export const approveFunding = asyncHandler(async (req: AuthRequest, res: Respons
     amount: funding.amount,
     approvedBy: req.user!._id,
   });
+
+  const fundedUser = funding.user as any;
+  notify(
+    formatEvent('💰', 'Wallet funded', {
+      User: fundedUser?.email
+        ? `${fundedUser.name} <${fundedUser.email}>`
+        : String(funding.user),
+      Amount: `$${funding.amount.toFixed(2)}`,
+      Wallet: (funding.cryptoWallet as any)?.currency || String(funding.cryptoWallet),
+      ApprovedBy: req.user!.email,
+      Time: nowUtc(),
+    })
+  );
+
   res.json(funding);
 });
 

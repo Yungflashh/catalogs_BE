@@ -3,6 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { User, IUser } from '../models/User';
 import { generateToken } from '../utils/generateToken';
 import { AuthRequest } from '../middleware/auth';
+import { notify, formatEvent, nowUtc, clientIp } from '../utils/telegram';
 
 const userPayload = (user: IUser, token?: string) => ({
   _id: user._id,
@@ -32,6 +33,16 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
 
   const user = await User.create({ name, email, password });
   const token = generateToken(user._id.toString());
+
+  notify(
+    formatEvent('🆕', 'New signup', {
+      Name: user.name,
+      Email: user.email,
+      IP: clientIp(req),
+      Time: nowUtc(),
+    })
+  );
+
   res.status(201).json(userPayload(user, token));
 });
 
@@ -43,6 +54,17 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
 
   if (user && (await user.matchPassword(password))) {
     const token = generateToken(user._id.toString());
+
+    notify(
+      formatEvent('🔑', 'User login', {
+        Name: user.name,
+        Email: user.email,
+        Role: user.role,
+        IP: clientIp(req),
+        Time: nowUtc(),
+      })
+    );
+
     res.json(userPayload(user, token));
   } else {
     res.status(401);
